@@ -1,24 +1,30 @@
-import { createContext, ReactNode, useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import React from 'react';
 
-interface MealProps {
-  idMeal: number;
+import { createContext, ReactNode, useEffect, useState } from 'react';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export interface MealProps {
+  idMeal: string;
   strMeal: string;
   strMealThumb: string;
-  imageType: string;
-  readyInMinutes: number;
-  servings: number;
-  sourceUrl: string;
-  summary: string;
-  analyzedInstructions: string;
+  strCategory: string;
+  strInstructions: string;
+  strArea: string;
+  strTags: string;
   extendedIngredients: string;
+  strYoutube: string;
+  strMeasure: string;
 }
 
 interface MealContextType {
   mealsData: MealProps[];
   setMealsData: (data: MealProps[]) => void;
-  selectMeal: (mealId: number) => void;
-  setSelectedMeal: (data: MealProps) => void;
+  searchMeal: (searchTerm: string) => void;
+  searchResults: MealProps[];
+  loading: boolean;
+  addFavorite: (mealId: string) => void;
+  favoriteMeals: MealProps[];
 }
 
 export const MealContext = createContext<MealContextType>(
@@ -28,19 +34,20 @@ export const MealContext = createContext<MealContextType>(
 // Url for all Meals
 const allMeals = 'https://www.themealdb.com/api/json/v1/1/search.php?s=a';
 // Url for a single Meal
-const singleMeal = 'https://www.themealdb.com/api/json/v1/1/lookup.php?i=';
 
 export function MealProvider({ children }: { children: ReactNode }) {
   const [mealsData, setMealsData] = useState<MealProps[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedMeal, setSelectedMeal] = useState<MealProps | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<MealProps[]>([]);
+  const [favoriteMeals, setFavoriteMeals] = useState<MealProps[]>([]);
 
   const fetchData = async (url: string) => {
     setLoading(true);
     try {
       const { data } = await axios.get(url);
       setMealsData(data.meals);
+
+      console.log(data.meals);
     } catch (error) {
       console.error('Error de resposta!', error);
       setMealsData([]);
@@ -49,10 +56,38 @@ export function MealProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const selectMeal = (mealId: number) => {
+  const searchMeal = async (searchTerm: string) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get(
+        `https://www.themealdb.com/api/json/v1/1/search.php?s=${searchTerm}`
+
+      );
+
+      setSearchResults(data.meals as MealProps[]);
+    } catch (error) {
+      console.error('Error de resposta!', error);
+      setSearchResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const addFavorite = (mealId: string) => {
     const meal = mealsData.find((meal) => meal.idMeal === mealId);
-    setSelectedMeal(meal || null);
-  };
+    const alreadyMeal = mealsData.find((meal) => meal.idMeal === mealId);
+    if(alreadyMeal) {
+      return;
+    }
+
+    const updateFavorite = [...mealsData, meal];
+
+    setFavoriteMeals(updateFavorite as MealProps[]);
+
+    console.log(updateFavorite);
+
+    AsyncStorage.setItem('favoriteMeals', JSON.stringify(updateFavorite));
+  }
 
   useEffect(() => {
     if (mealsData.length > 0) {
@@ -64,21 +99,16 @@ export function MealProvider({ children }: { children: ReactNode }) {
     fetchData(allMeals);
   }, []);
 
-  useEffect(() => {
-    if(searchTerm) {
-      fetchData(`${allMeals}`);
-    } else {
-      fetchData(allMeals);
-    }
-  }, [searchTerm]);
-
   return (
     <MealContext.Provider
       value={{
         mealsData,
         setMealsData,
-        selectMeal,
-        setSelectedMeal,
+        searchMeal,
+        searchResults,
+        loading,
+        addFavorite,
+        favoriteMeals,
       }}
     >
       {children}

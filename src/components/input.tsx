@@ -1,6 +1,8 @@
+import React from 'react';
+
 import { TextInput, TextInputProps } from 'react-native';
 
-type InputProps = TextInputProps & {};
+type InputProps = TextInputProps & NonNullable<unknown>;
 
 export function Input({ ...rest }: InputProps) {
   return (

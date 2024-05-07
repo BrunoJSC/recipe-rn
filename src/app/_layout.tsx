@@ -1,3 +1,5 @@
+import React from 'react';
+
 import { useEffect } from 'react';
 
 import { MealProvider } from '@/context/meal-context';
@@ -37,8 +39,8 @@ export default function LayoutRoot() {
   return (
     <MealProvider>
       <Stack>
-        <Stack.Screen name="index" options={{ headerTitle: '' }} />
-        <Stack.Screen name="recipe/[id]" />
+        <Stack.Screen name="index" options={{ headerTitle: '', headerShown: false }} />
+        <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
       </Stack>
     </MealProvider>
   );
